@@ -1,5 +1,6 @@
 from playwright.sync_api import Browser, Page
 from ..shared.base_playwright import BasePlaywrightComputer
+from playwright_stealth import Stealth
 
 
 class LocalPlaywrightBrowser(BasePlaywrightComputer):
@@ -15,6 +16,7 @@ class LocalPlaywrightBrowser(BasePlaywrightComputer):
             f"--window-size={width},{height}",
             "--disable-extensions",
             "--disable-file-system",
+            "--disable-blink-features=AutomationControlled",
         ]
         browser = self._playwright.chromium.launch(
             chromium_sandbox=True,
@@ -23,12 +25,17 @@ class LocalPlaywrightBrowser(BasePlaywrightComputer):
             env={"DISPLAY": ":0"},
         )
 
-        context = browser.new_context()
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+            locale="en-US",
+            timezone_id="America/New_York",
+        )
 
         # Add event listeners for page creation and closure
         context.on("page", self._handle_new_page)
 
         page = context.new_page()
+        Stealth().use_sync(page)
         page.set_viewport_size({"width": width, "height": height})
         page.on("close", self._handle_page_close)
 
@@ -39,6 +46,7 @@ class LocalPlaywrightBrowser(BasePlaywrightComputer):
     def _handle_new_page(self, page: Page):
         """Handle the creation of a new page."""
         print("New page created")
+        Stealth().use_sync(page)  # Apply stealth to new pages
         self._page = page
         page.on("close", self._handle_page_close)
 

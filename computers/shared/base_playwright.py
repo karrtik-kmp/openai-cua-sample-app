@@ -63,7 +63,6 @@ class BasePlaywrightComputer:
 
         # Set up network interception to flag URLs matching domains in BLOCKED_DOMAINS
         def handle_route(route, request):
-
             url = request.url
             if check_blocklisted_url(url):
                 print(f"Flagging blocked domain: {url}")
@@ -138,7 +137,13 @@ class BasePlaywrightComputer:
     # --- Extra browser-oriented actions ---
     def goto(self, url: str) -> None:
         try:
-            return self._page.goto(url)
+            self._page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            # Wait for network to settle for dynamic content (with longer timeout)
+            try:
+                self._page.wait_for_load_state("networkidle", timeout=30000)
+            except Exception:
+                # networkidle can timeout on sites with persistent connections, continue anyway
+                pass
         except Exception as e:
             print(f"Error navigating to {url}: {e}")
 
